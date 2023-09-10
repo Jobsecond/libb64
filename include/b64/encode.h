@@ -8,6 +8,7 @@ For details, see http://sourceforge.net/projects/libb64
 #ifndef BASE64_ENCODE_H
 #define BASE64_ENCODE_H
 
+#include <vector>
 #include <iostream>
 
 namespace base64
@@ -20,25 +21,25 @@ namespace base64
 	struct encoder
 	{
 		base64_encodestate _state;
-		int _buffersize;
+		size_t _buffersize;
 
-		encoder(int buffersize_in = BUFFERSIZE)
+		encoder(size_t buffersize_in = BUFFERSIZE)
 			: _buffersize(buffersize_in)
 		{
 			base64_init_encodestate(&_state);
 		}
 
-		int encode(char value_in)
+		char encode(char value_in)
 		{
 			return base64_encode_value(value_in);
 		}
 
 		std::streamsize encode(const char* code_in, const std::streamsize length_in, char* plaintext_out)
 		{
-			return base64_encode_block(code_in, static_cast<int>(length_in), plaintext_out, &_state);
+			return base64_encode_block(code_in, static_cast<size_t>(length_in), plaintext_out, &_state);
 		}
 
-		int encode_end(char* plaintext_out)
+		size_t encode_end(char* plaintext_out)
 		{
 			return base64_encode_blockend(plaintext_out, &_state);
 		}
@@ -47,28 +48,25 @@ namespace base64
 		{
 			base64_init_encodestate(&_state);
 			//
-			const int N = _buffersize;
-			char* plaintext = new char[N];
-			char* code = new char[2 * N];
+			const size_t N = _buffersize;
+			std::vector<char> plaintext(N);
+			std::vector<char> code(2 * N);
 			std::streamsize plainlength;
 			std::streamsize codelength;
 
 			do
 			{
-				istream_in.read(plaintext, N);
+				istream_in.read(plaintext.data(), plaintext.size());
 				plainlength = istream_in.gcount();
 				//
-				codelength = encode(plaintext, plainlength, code);
-				ostream_in.write(code, codelength);
+				codelength = encode(plaintext.data(), plainlength, code.data());
+				ostream_in.write(code.data(), codelength);
 			} while(istream_in.good() && plainlength > 0);
 
-			codelength = encode_end(code);
-			ostream_in.write(code, codelength);
+			codelength = encode_end(code.data());
+			ostream_in.write(code.data(), codelength);
 			//
 			base64_init_encodestate(&_state);
-
-			delete[] code;
-			delete[] plaintext;
 		}
 	};
 

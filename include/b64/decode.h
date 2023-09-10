@@ -8,6 +8,7 @@ For details, see http://sourceforge.net/projects/libb64
 #ifndef BASE64_DECODE_H
 #define BASE64_DECODE_H
 
+#include <vector>
 #include <iostream>
 
 namespace base64
@@ -20,9 +21,9 @@ namespace base64
 	struct decoder
 	{
 		base64_decodestate _state;
-		int _buffersize;
+		size_t _buffersize;
 
-		decoder(int buffersize_in = BUFFERSIZE)
+		decoder(size_t buffersize_in = BUFFERSIZE)
 		: _buffersize(buffersize_in)
 		{
 			base64_init_decodestate(&_state);
@@ -35,32 +36,30 @@ namespace base64
 
 		std::streamsize decode(const char* code_in, const std::streamsize length_in, char* plaintext_out)
 		{
-			return base64_decode_block(code_in, static_cast<int>(length_in), plaintext_out, &_state);
+			return base64_decode_block(code_in, static_cast<size_t>(length_in), plaintext_out, &_state);
 		}
 
 		void decode(std::istream& istream_in, std::ostream& ostream_in)
 		{
 			base64_init_decodestate(&_state);
 			//
-			const int N = _buffersize;
-			char* code = new char[N];
-			char* plaintext = new char[N];
+			const size_t N = _buffersize;
+
+			std::vector<char> code(N);
+			std::vector<char> plaintext(N);
 			std::streamsize codelength;
 			std::streamsize plainlength;
 
 			do
 			{
-				istream_in.read((char*)code, N);
+				istream_in.read(code.data(), code.size());
 				codelength = istream_in.gcount();
-				plainlength = decode(code, codelength, plaintext);
-				ostream_in.write((const char*)plaintext, plainlength);
+				plainlength = decode(code.data(), codelength, plaintext.data());
+				ostream_in.write(plaintext.data(), plainlength);
 			}
 			while (istream_in.good() && codelength > 0);
 			//
 			base64_init_decodestate(&_state);
-
-			delete [] code;
-			delete [] plaintext;
 		}
 	};
 
